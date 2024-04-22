@@ -26,3 +26,51 @@ type CreateImageInformationParams struct {
 func (q *Queries) CreateImageInformation(ctx context.Context, arg CreateImageInformationParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createImageInformation, arg.Name, arg.Created)
 }
+
+const getInformation = `-- name: GetInformation :one
+SELECT
+  id, name, created
+FROM
+  informations
+WHERE
+  name = ?
+LIMIT
+  1
+`
+
+func (q *Queries) GetInformation(ctx context.Context, name string) (Information, error) {
+	row := q.db.QueryRowContext(ctx, getInformation, name)
+	var i Information
+	err := row.Scan(&i.ID, &i.Name, &i.Created)
+	return i, err
+}
+
+const listInformations = `-- name: ListInformations :many
+SELECT
+  id, name, created
+FROM
+  informations
+`
+
+func (q *Queries) ListInformations(ctx context.Context) ([]Information, error) {
+	rows, err := q.db.QueryContext(ctx, listInformations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Information
+	for rows.Next() {
+		var i Information
+		if err := rows.Scan(&i.ID, &i.Name, &i.Created); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

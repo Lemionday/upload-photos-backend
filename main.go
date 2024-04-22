@@ -150,8 +150,15 @@ func init() {
 	}
 }
 
-func (c *ClientUploader) ListFiles() []string {
-	files := []string{}
+type imageInformation struct {
+	Link string `json:"link"`
+	// Name    string    `json:"name"`
+	Created time.Time `json:"created"`
+}
+
+func (c *ClientUploader) ListFiles() []imageInformation {
+	fileInfos := []imageInformation{}
+	// files := []string{}
 	it := c.cl.Bucket(c.bucketName).Objects(context.TODO(), nil)
 	for {
 		attrs, err := it.Next()
@@ -162,10 +169,18 @@ func (c *ClientUploader) ListFiles() []string {
 			// return fmt.Errorf("Bucket(%q).Objects: %w", bucket, err)
 		}
 
-		files = append(files, attrs.Name)
+		imageInfo, err := queries.GetInformation(context.Background(), attrs.Name)
+		if err != nil {
+			log.Println(err)
+		}
+
+		fileInfos = append(fileInfos, imageInformation{
+			Link:    attrs.Name,
+			Created: imageInfo.Created,
+		})
 	}
 
-	return files
+	return fileInfos
 }
 
 func (c *ClientUploader) UploadFile(file multipart.File, object string) error {
@@ -175,7 +190,7 @@ func (c *ClientUploader) UploadFile(file multipart.File, object string) error {
 	defer cancel()
 
 	// Upload an object with storage.Writer.
-	wc := c.cl.Bucket(c.bucketName).Object(c.uploadPath + object).NewWriter(ctx)
+	wc := c.cl.Bucket(c.bucketName).Object(object).NewWriter(ctx)
 	if _, err := io.Copy(wc, file); err != nil {
 		return fmt.Errorf("io.Copy: %v", err)
 	}

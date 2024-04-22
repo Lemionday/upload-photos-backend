@@ -19,7 +19,7 @@ var (
 func init() {
 	// ctx := context.Background()
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, hostname, port, database))
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", username, password, hostname, port, database))
 	if err != nil {
 		log.Fatal(err)
 	}
